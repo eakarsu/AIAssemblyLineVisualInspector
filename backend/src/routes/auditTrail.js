@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
 
 // GET /api/audit-trail/stats - action counts by type (must be before /:id)
-router.get('/stats', async (req, res) => {
+router.get('/stats', auth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT action, COUNT(*) AS count
@@ -19,7 +20,7 @@ router.get('/stats', async (req, res) => {
 });
 
 // GET /api/audit-trail - list with pagination and filters
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -78,7 +79,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/audit-trail
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const { user_id, action, entity_type, entity_id, details, ip_address } = req.body;
     const result = await pool.query(

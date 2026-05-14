@@ -1,9 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
+
+function validateInventory(body) {
+  const errors = [];
+  if (!body.part_name || !String(body.part_name).trim()) errors.push('part_name is required');
+  if (!body.part_number || !String(body.part_number).trim()) errors.push('part_number is required');
+  const qty = parseInt(body.quantity_in_stock, 10);
+  if (body.quantity_in_stock !== undefined && body.quantity_in_stock !== '' && (isNaN(qty) || qty < 0)) errors.push('quantity_in_stock must be a non-negative integer');
+  return errors;
+}
 
 // GET /api/inventory/low-stock
-router.get('/low-stock', async (req, res) => {
+router.get('/low-stock', auth, async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT * FROM inventory WHERE quantity_in_stock <= minimum_stock_level ORDER BY quantity_in_stock ASC'
@@ -16,7 +26,7 @@ router.get('/low-stock', async (req, res) => {
 });
 
 // GET /api/inventory
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM inventory ORDER BY created_at DESC');
     res.json(result.rows);
@@ -27,7 +37,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/inventory/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM inventory WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
@@ -41,7 +51,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/inventory
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
+  const errs = validateInventory(req.body);
+  if (errs.length) return res.status(400).json({ error: errs.join('; ') });
   try {
     const { part_name, part_number, category, quantity_in_stock, minimum_stock_level, unit_cost, supplier, location, production_line_id, status } = req.body;
     const result = await pool.query(
@@ -57,7 +69,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/inventory/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { part_name, part_number, category, quantity_in_stock, minimum_stock_level, unit_cost, supplier, location, production_line_id, status, last_restocked } = req.body;
     const result = await pool.query(
@@ -77,7 +89,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/inventory/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM inventory WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {

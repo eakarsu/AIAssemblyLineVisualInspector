@@ -1,9 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
+
+// Validation helper
+function validateInspection(body) {
+  const errors = [];
+  const { status } = body;
+  const allowed = ['pass', 'fail', 'warning'];
+  if (status && !allowed.includes(status)) errors.push(`status must be one of: ${allowed.join(', ')}`);
+  const defect_count = parseInt(body.defect_count, 10);
+  if (body.defect_count !== undefined && body.defect_count !== '' && (isNaN(defect_count) || defect_count < 0)) errors.push('defect_count must be a non-negative integer');
+  const confidence_score = parseFloat(body.confidence_score);
+  if (body.confidence_score !== undefined && body.confidence_score !== '' && (isNaN(confidence_score) || confidence_score < 0 || confidence_score > 100)) errors.push('confidence_score must be between 0 and 100');
+  return errors;
+}
 
 // GET /api/inspections (with pagination and filters)
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const { page = 1, limit = 20, status, production_line_id } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -62,7 +76,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/inspections/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT i.*, pl.name as production_line_name, p.name as product_name
@@ -83,7 +97,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/inspections
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
+  const errs = validateInspection(req.body);
+  if (errs.length) return res.status(400).json({ error: errs.join('; ') });
   try {
     const {
       production_line_id, camera_feed_id, product_id, batch_id, operator_id,
@@ -105,7 +121,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/inspections/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const {
       production_line_id, camera_feed_id, product_id, batch_id, operator_id,
@@ -131,7 +147,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/inspections/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM inspections WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {

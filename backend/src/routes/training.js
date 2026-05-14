@@ -1,9 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
+
+function validateTraining(body) {
+  const errors = [];
+  if (!body.title || !String(body.title).trim()) errors.push('title is required');
+  const statuses = ['scheduled', 'in_progress', 'completed', 'cancelled'];
+  if (body.status && !statuses.includes(body.status)) errors.push(`status must be one of: ${statuses.join(', ')}`);
+  return errors;
+}
 
 // GET /api/training/expiring
-router.get('/expiring', async (req, res) => {
+router.get('/expiring', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT * FROM training_records WHERE expiry_date IS NOT NULL
@@ -18,7 +27,7 @@ router.get('/expiring', async (req, res) => {
 });
 
 // GET /api/training
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM training_records ORDER BY created_at DESC');
     res.json(result.rows);
@@ -29,7 +38,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/training/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM training_records WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
@@ -43,7 +52,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/training
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
+  const errs = validateTraining(req.body);
+  if (errs.length) return res.status(400).json({ error: errs.join('; ') });
   try {
     const { operator_id, training_type, title, description, trainer, certification_name, certification_number, start_date, completion_date, expiry_date, status, score, notes } = req.body;
     const result = await pool.query(
@@ -59,7 +70,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/training/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { operator_id, training_type, title, description, trainer, certification_name, certification_number, start_date, completion_date, expiry_date, status, score, notes } = req.body;
     const result = await pool.query(
@@ -79,7 +90,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/training/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM training_records WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {

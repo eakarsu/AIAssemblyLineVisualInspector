@@ -1,9 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
+
+function validateDefect(body) {
+  const errors = [];
+  if (!body.name || !String(body.name).trim()) errors.push('name is required');
+  if (!body.code || !String(body.code).trim()) errors.push('code is required');
+  const severities = ['critical', 'major', 'minor'];
+  if (body.severity && !severities.includes(body.severity)) errors.push(`severity must be one of: ${severities.join(', ')}`);
+  return errors;
+}
 
 // GET /api/defect-library
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const { category, severity } = req.query;
     let query = 'SELECT * FROM defect_library';
@@ -33,7 +43,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/defect-library/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM defect_library WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
@@ -47,7 +57,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/defect-library
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
+  const errs = validateDefect(req.body);
+  if (errs.length) return res.status(400).json({ error: errs.join('; ') });
   try {
     const { name, code, category, severity, description, detection_method, corrective_action, reference_image_url } = req.body;
     const result = await pool.query(
@@ -63,7 +75,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/defect-library/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { name, code, category, severity, description, detection_method, corrective_action, reference_image_url } = req.body;
     const result = await pool.query(
@@ -82,7 +94,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/defect-library/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM defect_library WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {

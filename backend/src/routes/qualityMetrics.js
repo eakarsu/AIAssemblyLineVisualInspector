@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
 
 // GET /api/quality-metrics/summary
-router.get('/summary', async (req, res) => {
+router.get('/summary', auth, async (req, res) => {
   try {
     const totalInspections = await pool.query('SELECT COUNT(*) FROM inspections');
     const passCount = await pool.query("SELECT COUNT(*) FROM inspections WHERE status = 'pass'");
@@ -33,7 +34,7 @@ router.get('/summary', async (req, res) => {
 });
 
 // GET /api/quality-metrics/trend
-router.get('/trend', async (req, res) => {
+router.get('/trend', auth, async (req, res) => {
   try {
     const { days = 30 } = req.query;
     const result = await pool.query(
@@ -62,7 +63,7 @@ router.get('/trend', async (req, res) => {
 });
 
 // GET /api/quality-metrics/by-line
-router.get('/by-line', async (req, res) => {
+router.get('/by-line', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT
@@ -88,7 +89,7 @@ router.get('/by-line', async (req, res) => {
 });
 
 // GET /api/quality-metrics/by-defect
-router.get('/by-defect', async (req, res) => {
+router.get('/by-defect', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT
@@ -110,7 +111,7 @@ router.get('/by-defect', async (req, res) => {
 });
 
 // GET /api/quality-metrics/spc
-router.get('/spc', async (req, res) => {
+router.get('/spc', auth, async (req, res) => {
   try {
     const { production_line_id, days = 30 } = req.query;
 

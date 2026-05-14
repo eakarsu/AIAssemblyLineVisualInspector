@@ -1,9 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
+
+function validateQualityGoal(body) {
+  const errors = [];
+  if (!body.name || !String(body.name).trim()) errors.push('name is required');
+  const tv = parseFloat(body.target_value);
+  if (body.target_value === undefined || body.target_value === '' || isNaN(tv)) errors.push('target_value is required and must be a number');
+  return errors;
+}
 
 // GET /api/quality-goals/progress
-router.get('/progress', async (req, res) => {
+router.get('/progress', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT *, CASE WHEN target_value = 0 THEN 0 ELSE ROUND((current_value / target_value) * 100, 2) END AS progress_percentage
@@ -17,7 +26,7 @@ router.get('/progress', async (req, res) => {
 });
 
 // GET /api/quality-goals
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM quality_goals ORDER BY created_at DESC');
     res.json(result.rows);
@@ -28,7 +37,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/quality-goals/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM quality_goals WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
@@ -42,7 +51,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/quality-goals
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
+  const errs = validateQualityGoal(req.body);
+  if (errs.length) return res.status(400).json({ error: errs.join('; ') });
   try {
     const { name, description, target_value, current_value, unit, category, production_line_id, product_id, start_date, end_date, status } = req.body;
     const result = await pool.query(
@@ -58,7 +69,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/quality-goals/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { name, description, target_value, current_value, unit, category, production_line_id, product_id, start_date, end_date, status } = req.body;
     const result = await pool.query(
@@ -78,7 +89,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/quality-goals/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM quality_goals WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {
