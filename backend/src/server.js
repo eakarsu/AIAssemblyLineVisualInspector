@@ -169,6 +169,7 @@ app.use('/api/training', generalLimiter, trainingRoutes);
 app.use('/api/quality-goals', generalLimiter, qualityGoalsRoutes);
 app.use('/api/work-orders', generalLimiter, workOrdersRoutes);
 app.use('/api/analytics', generalLimiter, analyticsRoutes);
+app.use('/api/custom-views', generalLimiter, require('./routes/customViews'));
 
 // Health check
 app.get('/api/health', (req, res) => {
