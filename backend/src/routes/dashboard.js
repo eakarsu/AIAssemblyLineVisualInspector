@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
 
 // GET /api/dashboard
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);

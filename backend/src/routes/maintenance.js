@@ -1,9 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
+
+function validateMaintenance(body) {
+  const errors = [];
+  if (!body.title || !String(body.title).trim()) errors.push('title is required');
+  if (!body.scheduled_date) errors.push('scheduled_date is required');
+  const priorities = ['low', 'medium', 'high', 'critical'];
+  if (body.priority && !priorities.includes(body.priority)) errors.push(`priority must be one of: ${priorities.join(', ')}`);
+  return errors;
+}
 
 // GET /api/maintenance
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT m.*, pl.name as production_line_name
@@ -19,7 +29,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/maintenance/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT m.*, pl.name as production_line_name
@@ -39,7 +49,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/maintenance
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
+  const errs = validateMaintenance(req.body);
+  if (errs.length) return res.status(400).json({ error: errs.join('; ') });
   try {
     const { production_line_id, type, title, description, priority, status, assigned_to, scheduled_date, completed_date, estimated_duration_hours, actual_duration_hours, parts_required, notes } = req.body;
     const result = await pool.query(
@@ -55,7 +67,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/maintenance/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { production_line_id, type, title, description, priority, status, assigned_to, scheduled_date, completed_date, estimated_duration_hours, actual_duration_hours, parts_required, notes } = req.body;
     const result = await pool.query(
@@ -76,7 +88,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/maintenance/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM maintenance_schedules WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {

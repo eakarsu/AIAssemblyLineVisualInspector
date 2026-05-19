@@ -1,12 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
+const { paginatedList } = require('../paginate');
 
-// GET /api/products
-router.get('/', async (req, res) => {
+function validateProduct(body) {
+  const errors = [];
+  if (!body.name || !String(body.name).trim()) errors.push('name is required');
+  if (!body.sku || !String(body.sku).trim()) errors.push('sku is required');
+  const threshold = parseFloat(body.quality_threshold);
+  if (body.quality_threshold !== undefined && body.quality_threshold !== '' && (isNaN(threshold) || threshold < 0 || threshold > 100)) errors.push('quality_threshold must be between 0 and 100');
+  return errors;
+}
+
+// GET /api/products (paginated when ?page or ?limit provided)
+router.get('/', auth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM products ORDER BY created_at DESC');
-    res.json(result.rows);
+    const result = await paginatedList({
+      pool,
+      table: 'products',
+      orderBy: 'created_at DESC',
+      searchColumns: ['name', 'sku'],
+      req,
+    });
+    res.json(result);
   } catch (err) {
     console.error('Get products error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -14,7 +31,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/products/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
@@ -28,7 +45,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/products
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
+  const errs = validateProduct(req.body);
+  if (errs.length) return res.status(400).json({ error: errs.join('; ') });
   try {
     const { name, sku, category, description, specifications, quality_threshold } = req.body;
     const result = await pool.query(
@@ -44,7 +63,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/products/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { name, sku, category, description, specifications, quality_threshold } = req.body;
     const result = await pool.query(
@@ -63,7 +82,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/products/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {

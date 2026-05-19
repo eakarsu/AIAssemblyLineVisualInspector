@@ -1,12 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
+const { paginatedList } = require('../paginate');
 
-// GET /api/production-lines
-router.get('/', async (req, res) => {
+// Validate production line body
+function validateProductionLine(body) {
+  const errors = [];
+  if (!body.name || !String(body.name).trim()) errors.push('name is required');
+  const allowed = ['active', 'inactive', 'maintenance'];
+  if (body.status && !allowed.includes(body.status)) errors.push(`status must be one of: ${allowed.join(', ')}`);
+  return errors;
+}
+
+// GET /api/production-lines (paginated when ?page or ?limit provided)
+router.get('/', auth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM production_lines ORDER BY created_at DESC');
-    res.json(result.rows);
+    const result = await paginatedList({
+      pool,
+      table: 'production_lines',
+      orderBy: 'created_at DESC',
+      searchColumns: ['name', 'status'],
+      req,
+    });
+    res.json(result);
   } catch (err) {
     console.error('Get production lines error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -14,7 +31,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/production-lines/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM production_lines WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
@@ -28,7 +45,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/production-lines
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
+  const errs = validateProductionLine(req.body);
+  if (errs.length) return res.status(400).json({ error: errs.join('; ') });
   try {
     const { name, location, status, speed_units_per_hour, product_type, last_maintenance } = req.body;
     const result = await pool.query(
@@ -44,7 +63,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/production-lines/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { name, location, status, speed_units_per_hour, product_type, last_maintenance } = req.body;
     const result = await pool.query(
@@ -63,7 +82,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/production-lines/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM production_lines WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {

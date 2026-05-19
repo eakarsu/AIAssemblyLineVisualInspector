@@ -1,18 +1,46 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
 
-// GET /api/batches
-router.get('/', async (req, res) => {
+function validateBatch(body) {
+  const errors = [];
+  if (!body.batch_number || !String(body.batch_number).trim()) errors.push('batch_number is required');
+  const statuses = ['in_progress', 'completed', 'on_hold', 'cancelled'];
+  if (body.status && !statuses.includes(body.status)) errors.push(`status must be one of: ${statuses.join(', ')}`);
+  return errors;
+}
+
+// GET /api/batches (paginated when ?page or ?limit provided)
+router.get('/', auth, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT b.*, p.name as product_name, pl.name as production_line_name
+    const usePagination = req.query.page != null || req.query.limit != null;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
+
+    const baseSelect = `SELECT b.*, p.name as product_name, pl.name as production_line_name
        FROM batches b
        LEFT JOIN products p ON b.product_id = p.id
-       LEFT JOIN production_lines pl ON b.production_line_id = pl.id
-       ORDER BY b.created_at DESC`
+       LEFT JOIN production_lines pl ON b.production_line_id = pl.id`;
+
+    if (!usePagination) {
+      const result = await pool.query(`${baseSelect} ORDER BY b.created_at DESC`);
+      return res.json(result.rows);
+    }
+
+    const countRes = await pool.query('SELECT COUNT(*) FROM batches');
+    const total = parseInt(countRes.rows[0].count, 10);
+
+    const dataRes = await pool.query(
+      `${baseSelect} ORDER BY b.created_at DESC LIMIT $1 OFFSET $2`,
+      [limit, offset]
     );
-    res.json(result.rows);
+
+    res.json({
+      data: dataRes.rows,
+      pagination: { page, limit, total, total_pages: Math.ceil(total / limit) },
+    });
   } catch (err) {
     console.error('Get batches error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -20,7 +48,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/batches/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT b.*, p.name as product_name, pl.name as production_line_name
@@ -41,7 +69,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/batches
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
+  const errs = validateBatch(req.body);
+  if (errs.length) return res.status(400).json({ error: errs.join('; ') });
   try {
     const { batch_number, product_id, production_line_id, quantity, inspected_count, pass_count, fail_count, status, started_at, completed_at } = req.body;
     const result = await pool.query(
@@ -57,7 +87,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/batches/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { batch_number, product_id, production_line_id, quantity, inspected_count, pass_count, fail_count, status, started_at, completed_at } = req.body;
     const result = await pool.query(
@@ -77,7 +107,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/batches/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM batches WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {

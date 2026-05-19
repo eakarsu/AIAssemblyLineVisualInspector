@@ -1,9 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
+
+function validateWorkOrder(body) {
+  const errors = [];
+  if (!body.title || !String(body.title).trim()) errors.push('title is required');
+  const priorities = ['low', 'medium', 'high', 'critical'];
+  if (body.priority && !priorities.includes(body.priority)) errors.push(`priority must be one of: ${priorities.join(', ')}`);
+  return errors;
+}
 
 // GET /api/work-orders
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM work_orders ORDER BY created_at DESC');
     res.json(result.rows);
@@ -14,7 +23,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/work-orders/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM work_orders WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
@@ -28,7 +37,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/work-orders
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
+  const errs = validateWorkOrder(req.body);
+  if (errs.length) return res.status(400).json({ error: errs.join('; ') });
   try {
     const { order_number, title, description, type, priority, status, production_line_id, product_id, assigned_to, quantity_ordered, quantity_completed, due_date, started_at, completed_at, notes } = req.body;
     const result = await pool.query(
@@ -44,7 +55,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/work-orders/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { order_number, title, description, type, priority, status, production_line_id, product_id, assigned_to, quantity_ordered, quantity_completed, due_date, started_at, completed_at, notes } = req.body;
     const result = await pool.query(
@@ -64,7 +75,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/work-orders/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM work_orders WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {

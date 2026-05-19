@@ -1,9 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const auth = require('../middleware/auth');
+
+function validateDowntime(body) {
+  const errors = [];
+  if (!body.reason || !String(body.reason).trim()) errors.push('reason is required');
+  if (!body.start_time) errors.push('start_time is required');
+  return errors;
+}
 
 // GET /api/downtime/stats - aggregate stats (must be before /:id)
-router.get('/stats', async (req, res) => {
+router.get('/stats', auth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT
@@ -31,7 +39,7 @@ router.get('/stats', async (req, res) => {
 });
 
 // GET /api/downtime
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT d.*, pl.name as production_line_name
@@ -47,7 +55,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/downtime/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT d.*, pl.name as production_line_name
@@ -67,7 +75,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/downtime
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
+  const errs = validateDowntime(req.body);
+  if (errs.length) return res.status(400).json({ error: errs.join('; ') });
   try {
     const { production_line_id, reason, start_time, end_time, duration_minutes, description, impact, resolved_by } = req.body;
     const result = await pool.query(
@@ -83,7 +93,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/downtime/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { production_line_id, reason, start_time, end_time, duration_minutes, description, impact, resolved_by } = req.body;
     const result = await pool.query(
@@ -102,7 +112,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/downtime/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM downtime_events WHERE id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {
