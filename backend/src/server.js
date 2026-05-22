@@ -170,6 +170,7 @@ app.use('/api/quality-goals', generalLimiter, qualityGoalsRoutes);
 app.use('/api/work-orders', generalLimiter, workOrdersRoutes);
 app.use('/api/analytics', generalLimiter, analyticsRoutes);
 app.use('/api/custom-views', generalLimiter, require('./routes/customViews'));
+app.use('/api/golden-sample-calibration', generalLimiter, require('./routes/goldenSampleCalibration'));
 
 // Health check
 app.get('/api/health', (req, res) => {

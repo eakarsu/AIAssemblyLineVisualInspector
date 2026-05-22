@@ -7,8 +7,8 @@
 set -e
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BACKEND_PORT=3001
-FRONTEND_PORT=3000
+BACKEND_PORT=4001
+FRONTEND_PORT=4000
 
 # Colors
 RED='\033[0;31m'
