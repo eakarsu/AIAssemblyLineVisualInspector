@@ -7,7 +7,7 @@ const pool = new Pool({
   port: parseInt(process.env.DB_PORT, 10) || 5432,
   database: process.env.DB_NAME || 'assembly_inspector',
   user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  password: process.env.DB_PASSWORD,
 });
 
 pool.on('error', (err) => {

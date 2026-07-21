@@ -5,11 +5,14 @@ const jwt = require('jsonwebtoken');
 const pool = require('../db');
 const auth = require('../middleware/auth');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
+    if (!JWT_SECRET) {
+      return res.status(503).json({ error: 'Authentication is not configured' });
+    }
     const { email, password } = req.body;
 
     if (!email || !password) {

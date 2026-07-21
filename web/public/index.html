@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assembly Line Inspector</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <div><span class="eyebrow">Quality operations</span><h1>Assembly Line Visual Inspector</h1></div>
+    <button id="logout" class="secondary" hidden>Sign out</button>
+  </header>
+  <main>
+    <section id="login-panel" class="panel login">
+      <h2>Connect to the inspection service</h2>
+      <p>Use an account provisioned by the backend. Credentials are never embedded in this client.</p>
+      <form id="login-form">
+        <label>Email<input name="email" type="email" autocomplete="username" required></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Sign in</button>
+      </form>
+    </section>
+    <section id="workspace" hidden>
+      <div class="toolbar"><div><h2>Live quality overview</h2><p id="updated">Not loaded</p></div><button id="refresh">Refresh</button></div>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <div id="metrics" class="metrics"></div>
+      <div class="grid">
+        <article class="panel"><h3>Production lines</h3><div id="lines" class="table-wrap"></div></article>
+        <article class="panel"><h3>Unacknowledged alerts</h3><div id="alerts" class="list"></div></article>
+      </div>
+      <article class="panel"><h3>Recent inspections</h3><div id="inspections" class="table-wrap"></div></article>
+    </section>
+  </main>
+  <script src="/api.js"></script><script src="/app.js"></script>
+</body>
+</html>

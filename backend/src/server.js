@@ -103,8 +103,9 @@ const aiRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Best-effort runtime migration: ensure ai_results JSONB table exists.
-(async () => {
+// Database changes are opt-in. Run the dedicated seed/migration workflow explicitly,
+// or set DB_AUTO_MIGRATE=true for a disposable local environment.
+if (process.env.DB_AUTO_MIGRATE === 'true') (async () => {
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ai_results (
