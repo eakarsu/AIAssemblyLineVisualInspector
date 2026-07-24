@@ -1,5 +1,6 @@
 const { createClient, escapeHtml, normalizeList } = window.InspectorApi;
-const apiBase = window.localStorage.getItem('inspector.api') || 'http://localhost:4001/api';
+const apiPort = Number(window.location.port || 80) - 1;
+const apiBase = window.localStorage.getItem('inspector.api') || `${window.location.protocol}//${window.location.hostname}:${apiPort}/api`;
 let token = window.sessionStorage.getItem('inspector.token') || '';
 const request = createClient({ baseUrl: apiBase, getToken: () => token });
 const byId = (id) => document.getElementById(id);

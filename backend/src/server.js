@@ -148,6 +148,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
 app.use('/api/auth', generalLimiter, authRoutes);
+app.use('/api/runtime-ai', aiRateLimiter, require('./routes/runtimeAi'));
 app.use('/api/production-lines', generalLimiter, productionLinesRoutes);
 app.use('/api/camera-feeds', generalLimiter, cameraFeedsRoutes);
 app.use('/api/inspections', generalLimiter, inspectionsRoutes);
