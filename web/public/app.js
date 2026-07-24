@@ -5,6 +5,19 @@ let token = window.sessionStorage.getItem('inspector.token') || '';
 const request = createClient({ baseUrl: apiBase, getToken: () => token });
 const byId = (id) => document.getElementById(id);
 
+const demoCredentialsButton = document.createElement('button');
+demoCredentialsButton.type = 'button';
+demoCredentialsButton.textContent = 'Auto Fill Demo Credentials';
+demoCredentialsButton.setAttribute('aria-label', 'Auto Fill Demo Credentials');
+demoCredentialsButton.addEventListener('click', async () => {
+  try {
+    const credentials = await request('/auth/demo-credentials');
+    byId('login-form').elements.email.value = credentials.email;
+    byId('login-form').elements.password.value = credentials.password;
+  } catch (error) { setStatus(error.message, 'error'); }
+});
+byId('login-form').insertBefore(demoCredentialsButton, byId('login-form').querySelector('button'));
+
 function setStatus(message, kind = '') {
   const node = byId('status');
   node.textContent = message;
