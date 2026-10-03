@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Assembly Line Inspector</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/sidebar.css">
 </head>
 <body>
   <header>
@@ -21,16 +21,16 @@
         <button type="submit">Sign in</button>
       </form>
     </section>
-    <section id="workspace" hidden>
-      <div class="toolbar"><div><h2>Live quality overview</h2><p id="updated">Not loaded</p></div><button id="refresh">Refresh</button></div>
+    <section id="workspace" hidden><aside class="codex-side" aria-label="Application navigation"><strong>AssemblyLineVisualInspector</strong><span>Workspace</span><label for="codex-side-search">Find a section</label><input id="codex-side-search" type="search" placeholder="Search navigation" aria-controls="codex-side-links"><nav id="codex-side-links" aria-label="Sections"><a href="#workspace-overview">Overview</a><a href="#codex-section-1">Production lines</a><a href="#codex-section-2">Unacknowledged alerts</a><a href="#codex-section-3">Recent inspections</a></nav></aside><script>document.getElementById('codex-side-search').addEventListener('input', function () { const query = this.value.toLowerCase().trim(); document.querySelectorAll('#codex-side-links a').forEach(link => { link.hidden = !link.textContent.toLowerCase().includes(query); }); });</script><div class="codex-workspace-main">
+      <div class="toolbar" id="workspace-overview"><div><h2>Live quality overview</h2><p id="updated">Not loaded</p></div><button id="refresh">Refresh</button></div>
       <div id="status" class="status" role="status" aria-live="polite"></div>
       <div id="metrics" class="metrics"></div>
       <div class="grid">
-        <article class="panel"><h3>Production lines</h3><div id="lines" class="table-wrap"></div></article>
-        <article class="panel"><h3>Unacknowledged alerts</h3><div id="alerts" class="list"></div></article>
+        <article class="panel" id="codex-section-1"><h3>Production lines</h3><div id="lines" class="table-wrap"></div></article>
+        <article class="panel" id="codex-section-2"><h3>Unacknowledged alerts</h3><div id="alerts" class="list"></div></article>
       </div>
-      <article class="panel"><h3>Recent inspections</h3><div id="inspections" class="table-wrap"></div></article>
-    </section>
+      <article class="panel" id="codex-section-3"><h3>Recent inspections</h3><div id="inspections" class="table-wrap"></div></article>
+    </div></section>
   </main>
   <script src="/api.js"></script><script src="/app.js"></script>
 </body>
