@@ -56,7 +56,7 @@ async function openRecord(row, endpoint, title) {
   const close = () => { if (busy) return; overlay.remove(); document.body.style.overflow = ''; };
   function draw() {
     const keys = Object.keys(record).filter((key) => !RECORD_SKIP_KEYS.has(key));
-    overlay.innerHTML = `<section class="native-vanilla-dialog" role="dialog" aria-modal="true" aria-labelledby="record-dialog-heading" tabindex="-1"><header><h2 id="record-dialog-heading">${escapeHtml(title || 'Record')} · ${escapeHtml(record.id ?? '')}</h2><button type="button" data-dialog="cancel" ${busy ? 'disabled' : ''}>Cancel</button></header><div class="native-vanilla-dialog-body">${editing ? `<form data-record-form><div class="native-vanilla-fields">${keys.map((key) => `<label>${escapeHtml(key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' '))}<textarea name="${escapeHtml(key)}">${escapeHtml(inputValue(record[key]))}</textarea></label>`).join('')}</div></form>` : window.BrowserAIReport.render(record)}<p role="alert" data-record-error></p></div><footer><button type="button" data-dialog="${editing ? 'save' : 'edit'}" ${busy ? 'disabled' : ''}>${editing ? 'Save changes' : 'Edit'}</button><button type="button" class="danger" data-dialog="delete" ${busy ? 'disabled' : ''}>Delete</button><button type="button" data-dialog="cancel" ${busy ? 'disabled' : ''}>Cancel</button></footer></section>`;
+    overlay.innerHTML = `<section class="native-vanilla-dialog" role="dialog" aria-modal="true" aria-labelledby="record-dialog-heading" tabindex="-1"><header><h2 id="record-dialog-heading">${escapeHtml(title || 'Record')} · ${escapeHtml(record.id ?? '')}</h2><button type="button" data-dialog="cancel" ${busy ? 'disabled' : ''}>Cancel</button></header><div class="native-vanilla-dialog-body">${editing ? `<form data-record-form><div class="native-vanilla-fields">${keys.map((key) => `<label>${escapeHtml(key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' '))}<textarea name="${escapeHtml(key)}">${escapeHtml(inputValue(record[key]))}</textarea></label>`).join('')}</div></form>` : window.BrowserAIReport.render(record)}<p role="alert" data-record-error></p></div><footer>${editing ? `<button type="button" data-dialog="save" ${busy ? 'disabled' : ''}>Save changes</button>` : `<button type="button" data-dialog="edit" ${busy ? 'disabled' : ''}>Edit</button>`}<button type="button" class="danger" data-dialog="delete" ${busy ? 'disabled' : ''}>Delete</button><button type="button" data-dialog="cancel" ${busy ? 'disabled' : ''}>Cancel</button></footer></section>`;
     overlay.querySelector('[role=dialog]').focus();
   }
   overlay.addEventListener('click', async (event) => {
@@ -95,7 +95,7 @@ async function openRecord(row, endpoint, title) {
 document.addEventListener('click', (event) => {
   const host = event.target.closest('[data-record-table]');
   if (!host) return;
-  const tr = event.target.closest('tr.record-row');
+  const tr = event.target.closest('.record-row');
   if (!tr || !host.contains(tr)) return;
   const entry = recordTables[host.dataset.recordTable];
   if (entry) openRecord(entry.rows[Number(tr.dataset.row)], entry.endpoint, entry.title);
@@ -127,7 +127,7 @@ async function refresh() {
     byId('metrics').innerHTML = cards.map(([label, value]) => `<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(value ?? 0)}</strong></article>`).join('');
     byId('lines').innerHTML = table(normalizeList(lines), [['name', 'Line'], ['product_type', 'Product'], ['status', 'Status'], ['speed_units_per_hour', 'Units/hour']], '/production-lines', 'Production line');
     const alerts = normalizeList(alertsResponse);
-    byId('alerts').innerHTML = alerts.length ? alerts.map((item) => `<div class="alert"><strong>${escapeHtml(item.title || item.type)}</strong><span>${escapeHtml(item.severity)} · ${escapeHtml(item.production_line_name || 'Unassigned')}</span><p>${escapeHtml(item.message)}</p></div>`).join('') : '<p class="empty">No open alerts.</p>';
+    const alertTableId = `records-${++recordTableSeq}`; recordTables[alertTableId] = { rows: alerts, endpoint: '/alerts', title: 'Alert' }; byId('alerts').innerHTML = alerts.length ? `<div data-record-table="${alertTableId}">${alerts.map((item, idx) => `<div class="alert record-row" data-row="${idx}" tabindex="0" role="button" style="cursor:pointer"><strong>${escapeHtml(item.title || item.type)}</strong><span>${escapeHtml(item.severity)} · ${escapeHtml(item.production_line_name || 'Unassigned')}</span><p>${escapeHtml(item.message)}</p></div>`).join('')}</div>` : '<p class="empty">No open alerts.</p>';
     byId('inspections').innerHTML = table(normalizeList(inspections), [['inspected_at', 'Inspected'], ['production_line_name', 'Line'], ['product_name', 'Product'], ['status', 'Result'], ['defect_count', 'Defects'], ['confidence_score', 'Confidence']], '/inspections', 'Inspection');
     byId('updated').textContent = `Updated ${new Date().toLocaleString()}`;
     setStatus('Quality data loaded.', 'success');
